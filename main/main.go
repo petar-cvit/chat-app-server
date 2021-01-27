@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/go-redis/redis"
 	_ "github.com/joho/godotenv/autoload"
 	"net"
 	"os"
@@ -13,6 +14,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	redis := redis.Client{}
+	redis.Close()
 
 	l, err := net.ListenTCP("tcp", laddr)
 	if err != nil {
@@ -43,6 +47,7 @@ func write(conn net.Conn, messages chan string) {
 			o, err := inputReader.ReadString('\n')
 			if err != nil {
 				fmt.Printf("outgoing error: %v", err)
+				conn.Close()
 				return
 			}
 			outgoing <- o
