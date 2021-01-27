@@ -15,7 +15,9 @@ func main() {
 	}
 
 	l, err := net.ListenTCP("tcp", laddr)
+	fmt.Println(l)
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 	defer l.Close()
