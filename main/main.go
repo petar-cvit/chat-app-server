@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/go-redis/redis"
 	_ "github.com/joho/godotenv/autoload"
 	"net"
 	"os"
@@ -14,9 +13,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	redis := redis.Client{}
-	redis.Close()
 
 	l, err := net.ListenTCP("tcp", laddr)
 	if err != nil {
