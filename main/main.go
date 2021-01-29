@@ -12,12 +12,12 @@ func main() {
 	fmt.Println(os.Getenv("PORT"))
 	fmt.Println(os.Getenv("HOST"))
 	fmt.Println(fmt.Sprint(os.Getenv("PORT"), ":", os.Getenv("HOST")))
-	//laddr, err := net.ResolveTCPAddr("tcp", fmt.Sprint(os.Getenv("HOST"), ":", os.Getenv("PORT")))
-	//if err != nil {
-	//	panic(err)
-	//}
+	laddr, err := net.ResolveTCPAddr("tcp", fmt.Sprint(os.Getenv("HOST"), ":", os.Getenv("PORT")))
+	if err != nil {
+		panic(err)
+	}
 
-	l, err := net.ListenTCP("tcp", nil)
+	l, err := net.ListenTCP("tcp", laddr)
 	fmt.Println(l, "log laddr")
 	if err != nil {
 		fmt.Println(err)
