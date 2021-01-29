@@ -15,16 +15,19 @@ func main() {
 	//	panic(err)
 	//}
 
+	fmt.Println(os.Getenv("HOST"))
 	l, err := net.Listen("tcp", os.Getenv("HOST"))
 	fmt.Println(l, "log laddr")
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
+	fmt.Println("listening on", os.Getenv("HOST"))
 	defer l.Close()
 
 	messages := make(chan string, 5)
 	for {
+		fmt.Println("started a for loop")
 		conn, err := l.Accept()
 		if err != nil {
 			panic(err)
