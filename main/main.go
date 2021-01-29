@@ -40,6 +40,7 @@ func main() {
 }
 
 func write(conn net.Conn, messages chan string) {
+	fmt.Println(time.Now().String())
 	conn.Write([]byte(time.Now().String()))
 
 	//messages <- "someone joined\n"
