@@ -9,14 +9,13 @@ import (
 )
 
 func main() {
-	//fmt.Println(os.Getenv("HOST"))
-	//laddr, err := net.ResolveTCPAddr("tcp", os.Getenv("HOST"))
-	//if err != nil {
-	//	panic(err)
-	//}
-
 	fmt.Println(os.Getenv("HOST"))
-	l, err := net.Listen("tcp", os.Getenv("HOST"))
+	laddr, err := net.ResolveTCPAddr("tcp", os.Getenv("HOST"))
+	if err != nil {
+		panic(err)
+	}
+
+	l, err := net.ListenTCP("tcp", laddr)
 	fmt.Println(l, "log laddr")
 	if err != nil {
 		fmt.Println(err)
