@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	fmt.Println(os.Environ())
+
 	fmt.Println(os.Getenv("PORT"))
 	fmt.Println(os.Getenv("HOST"))
 	fmt.Println(fmt.Sprint(os.Getenv("PORT"), ":", os.Getenv("HOST")))
