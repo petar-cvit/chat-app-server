@@ -9,8 +9,10 @@ import (
 )
 
 func main() {
+	fmt.Println(os.Getenv("PORT"))
 	fmt.Println(os.Getenv("HOST"))
-	laddr, err := net.ResolveTCPAddr("tcp", os.Getenv("HOST"))
+	fmt.Println(fmt.Sprint(os.Getenv("PORT"), ":", os.Getenv("HOST")))
+	laddr, err := net.ResolveTCPAddr("tcp", fmt.Sprint(os.Getenv("PORT"), ":", os.Getenv("HOST")))
 	if err != nil {
 		panic(err)
 	}
