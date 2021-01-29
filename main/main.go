@@ -1,11 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	_ "github.com/joho/godotenv/autoload"
 	"net"
 	"os"
+	"time"
 )
 
 func main() {
@@ -36,42 +36,44 @@ func main() {
 }
 
 func write(conn net.Conn, messages chan string) {
-	messages <- "someone joined\n"
-	reader := bufio.NewReader(conn)
+	conn.Write([]byte(time.Now().String()))
 
-	outgoing := make(chan string)
-	go func() {
-		inputReader := bufio.NewReader(os.Stdin)
-		for {
-			o, err := inputReader.ReadString('\n')
-			if err != nil {
-				fmt.Printf("outgoing error: %v", err)
-				conn.Close()
-				return
-			}
-			outgoing <- o
-		}
-	}()
-
-	incoming := make(chan string)
-	go func() {
-		for {
-			i, err := reader.ReadString('\n')
-			if err != nil {
-				messages <- "someone disconnected\n"
-				conn.Close()
-				return
-			}
-			incoming <- i
-		}
-	}()
-
-	for {
-		select {
-		case msg := <-messages:
-			conn.Write([]byte(msg))
-		case in := <-incoming:
-			messages <- in
-		}
-	}
+	//messages <- "someone joined\n"
+	//reader := bufio.NewReader(conn)
+	//
+	//outgoing := make(chan string)
+	//go func() {
+	//	inputReader := bufio.NewReader(os.Stdin)
+	//	for {
+	//		o, err := inputReader.ReadString('\n')
+	//		if err != nil {
+	//			fmt.Printf("outgoing error: %v", err)
+	//			conn.Close()
+	//			return
+	//		}
+	//		outgoing <- o
+	//	}
+	//}()
+	//
+	//incoming := make(chan string)
+	//go func() {
+	//	for {
+	//		i, err := reader.ReadString('\n')
+	//		if err != nil {
+	//			messages <- "someone disconnected\n"
+	//			conn.Close()
+	//			return
+	//		}
+	//		incoming <- i
+	//	}
+	//}()
+	//
+	//for {
+	//	select {
+	//	case msg := <-messages:
+	//		conn.Write([]byte(msg))
+	//	case in := <-incoming:
+	//		messages <- in
+	//	}
+	//}
 }
