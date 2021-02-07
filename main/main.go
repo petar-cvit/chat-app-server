@@ -6,11 +6,10 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
-	PORT := "8889"
-
 	server, _ := socketio.NewServer(nil)
 
 	server.OnConnect("/", func(s socketio.Conn) error {
@@ -50,6 +49,6 @@ func main() {
 	http.Handle("/socket.io/", server)
 	http.Handle("/", http.FileServer(http.Dir("static")))
 
-	log.Println("Serving at  port", PORT)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", PORT), nil))
+	log.Println("Serving at  port", os.Getenv("PORT"))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), nil))
 }
