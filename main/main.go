@@ -1,7 +1,6 @@
 package main
 
 import (
-	"chat-app-server/main/services/redis"
 	"fmt"
 	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
@@ -11,7 +10,7 @@ import (
 )
 
 func main() {
-	_ = redis.BuildRedisClient()
+	// _ = redis.BuildRedisClient()
 	server, _ := socketio.NewServer(nil)
 
 	server.OnConnect("/", func(s socketio.Conn) error {
