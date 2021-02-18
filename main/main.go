@@ -1,74 +1,54 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
-	"net"
+	"log"
+	"net/http"
 	"os"
 )
 
 func main() {
-	laddr, err := net.ResolveTCPAddr("tcp", os.Getenv("HOST"))
-	if err != nil {
-		panic(err)
-	}
+	server, _ := socketio.NewServer(nil)
 
-	l, err := net.ListenTCP("tcp", laddr)
-	if err != nil {
-		panic(err)
-	}
-	defer l.Close()
+	server.OnConnect("/", func(s socketio.Conn) error {
+		s.SetContext("")
+		fmt.Println("connected:", s.ID())
+		return nil
+	})
 
-	messages := make(chan string, 5)
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			panic(err)
-		}
+	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
+		fmt.Println("notice:", msg)
+		s.Emit("reply", "have "+msg)
+	})
 
-		go write(conn, messages)
-		fmt.Println("connected", conn.RemoteAddr().String(), conn.RemoteAddr().Network())
-	}
-}
+	server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
+		s.SetContext(msg)
+		return "recv " + msg
+	})
 
-func write(conn net.Conn, messages chan string) {
-	messages <- "someone joined\n"
-	reader := bufio.NewReader(conn)
+	server.OnEvent("/", "bye", func(s socketio.Conn) string {
+		last := s.Context().(string)
+		s.Emit("bye", last)
+		s.Close()
+		return last
+	})
 
-	outgoing := make(chan string)
-	go func() {
-		inputReader := bufio.NewReader(os.Stdin)
-		for {
-			o, err := inputReader.ReadString('\n')
-			if err != nil {
-				fmt.Printf("outgoing error: %v", err)
-				conn.Close()
-				return
-			}
-			outgoing <- o
-		}
-	}()
+	server.OnError("/", func(s socketio.Conn, e error) {
+		fmt.Println("meet error:", e)
+	})
 
-	incoming := make(chan string)
-	go func() {
-		for {
-			i, err := reader.ReadString('\n')
-			if err != nil {
-				messages <- "someone disconnected\n"
-				conn.Close()
-				return
-			}
-			incoming <- i
-		}
-	}()
+	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
+		fmt.Println("closed", reason)
+	})
 
-	for {
-		select {
-		case msg := <-messages:
-			conn.Write([]byte(msg))
-		case in := <-incoming:
-			messages <- in
-		}
-	}
+	go server.Serve()
+	defer server.Close()
+
+	http.Handle("/socket.io/", server)
+	http.Handle("/", http.FileServer(http.Dir("static")))
+
+	log.Println("Serving at  port", os.Getenv("PORT"))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), nil))
 }
