@@ -28,9 +28,7 @@
         $('#messages').append($('<li>').text(msg));
     });
     $('form').submit(function(){
-        s2.emit('msg', $('#m').val(), function(data){
-            $('#messages').append($('<li>').text('ACK CALLBACK: ' + data));
-        });
+        s2.emit('msg', $('#m').val());
         socket.emit('notice', $('#m').val());
         $('#m').val('');
         return false;
