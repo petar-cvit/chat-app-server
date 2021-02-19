@@ -22,7 +22,6 @@ func main() {
 
 	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
 		fmt.Println("notice:", msg)
-		s.Emit("reply", "have "+msg)
 		server.BroadcastToRoom("/", "chat_room", "reply", msg)
 	})
 
