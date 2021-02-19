@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	// _ = redis.BuildRedisClient()
 	server, _ := socketio.NewServer(nil)
 
 	server.OnConnect("/", func(s socketio.Conn) error {
