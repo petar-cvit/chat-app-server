@@ -5,7 +5,8 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font: 13px Helvetica, Arial; }
-        form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+        #msgs { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+        #roomID { background: #000; padding: 3px; bottom: 15px; width: 100%; color: #eee}
         form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
         form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
         #messages { list-style-type: none; margin: 0; padding: 0; }
@@ -15,24 +16,39 @@
 </head>
 <body>
 <ul id="messages"></ul>
-<form action="">
+<form id="msgs" action="">
     <input id="m" autocomplete="off" /><button>Send</button>
+</form>
+<form id="roomIDForm" action="">
+    <input id="roomID" type="number" />
+        <label for="roomID">RoomID</label>
+    <button>Send</button>
 </form>
 <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 <script>
     var socket = io();
-    // socket.emit('msg', 'hello');
+
     var s2 = io("/chat");
+
     socket.on('reply', function(msg){
         $('#messages').append($('<li>').text(msg));
     });
-    $('form').submit(function(){
+    socket.on('clear', function(msg){
+        $('#messages').empty();
+        return false;
+    });
+
+    $('#msgs').submit(function(){
         s2.emit('msg', $('#m').val());
         socket.emit('notice', $('#m').val());
         $('#m').val('');
         return false;
     });
+    $('#roomIDForm').submit(function(){
+        socket.emit('joinRoom', $('#roomID').val());
+        return false;
+    })
 </script>
 </body>
 </html>
