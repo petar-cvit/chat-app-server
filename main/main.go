@@ -2,27 +2,57 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/gin-gonic/gin"
 	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
-	"log"
-	"net/http"
-	"os"
+
+	"github.com/petar-cvit/chat-app-server/internal/infrastructure/storage"
 )
 
 func main() {
-	// _ = redis.BuildRedisClient()
+	router := gin.New()
+	storage := storage.New()
+
 	server, _ := socketio.NewServer(nil)
 
 	server.OnConnect("/", func(s socketio.Conn) error {
+		room := fmt.Sprintf("chat_room_%v", storage.GetRoom(s.ID()))
+
+		storage.SetRoom(s.ID(), room)
+
 		s.SetContext("")
-		s.Join("chat_room")
-		fmt.Println("connected:", s.ID())
+		s.Join(room)
+
+		msgs := storage.GetMessagesByRoom(room)
+		for _, msg := range msgs {
+			s.Emit("reply", msg)
+		}
+
+		return nil
+	})
+
+	server.OnEvent("/", "joinRoom", func(conn socketio.Conn, roomID string) error {
+		room := fmt.Sprintf("chat_room_%v", roomID)
+
+		conn.Leave(fmt.Sprintf("chat_room_%v", storage.GetRoom(conn.ID())))
+		conn.Emit("clear", "clear")
+
+		conn.Join(room)
+		storage.SetRoom(conn.ID(), room)
+
+		msgs := storage.GetMessagesByRoom(room)
+		for _, msg := range msgs {
+			conn.Emit("reply", msg)
+		}
+
 		return nil
 	})
 
 	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
-		fmt.Println("notice:", msg)
-		server.BroadcastToRoom("/", "chat_room", "reply", msg)
+		storage.SaveMessage(storage.GetRoom(s.ID()), msg)
+
+		server.BroadcastToRoom("/", storage.GetRoom(s.ID()), "reply", msg)
 	})
 
 	server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
@@ -33,7 +63,7 @@ func main() {
 	server.OnEvent("/", "bye", func(s socketio.Conn) string {
 		last := s.Context().(string)
 		s.Emit("bye", last)
-		s.Leave("chat_room")
+		s.Leave(storage.GetRoom(s.ID()))
 		s.Close()
 		return last
 	})
@@ -49,9 +79,9 @@ func main() {
 	go server.Serve()
 	defer server.Close()
 
-	http.Handle("/socket.io/", server)
-	http.Handle("/", http.FileServer(http.Dir("static")))
+	router.GET("/socket.io/*any", gin.WrapH(server))
+	router.POST("/socket.io/*any", gin.WrapH(server))
+	router.StaticFile("/", "./static/index.html")
 
-	log.Println("Serving at port", os.Getenv("PORT"))
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", os.Getenv("PORT")), nil))
+	router.Run()
 }
