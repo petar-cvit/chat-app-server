@@ -65,7 +65,7 @@ func (s *Storage) SetRoom(userID, roomID string) bool {
 func (s *Storage) GetRoom(userID string) string {
 	val, exists := s.messages.Load(userID)
 	if !exists {
-		return "chat_room"
+		return "chat_room_lobby"
 	}
 
 	roomID, ok := val.(string)

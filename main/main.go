@@ -17,12 +17,13 @@ func main() {
 	server, _ := socketio.NewServer(nil)
 
 	server.OnConnect("/", func(s socketio.Conn) error {
-		room := fmt.Sprintf("chat_room_%v", storage.GetRoom(s.ID()))
+		room := storage.GetRoom(s.ID())
 
 		storage.SetRoom(s.ID(), room)
 
 		s.SetContext("")
 		s.Join(room)
+		s.Emit("new_room", "lobby")
 
 		msgs := storage.GetMessagesByRoom(room)
 		for _, msg := range msgs {
@@ -33,9 +34,10 @@ func main() {
 	})
 
 	server.OnEvent("/", "joinRoom", func(conn socketio.Conn, roomID string) error {
-		room := fmt.Sprintf("chat_room_%v", roomID)
 		roomName := roomName(roomID)
-		strings.Join([]string{"chat_room_%v", roomID}, "_")
+		room := strings.Join([]string{"chat_room", roomName}, "_")
+
+		fmt.Println(room)
 
 		conn.Leave(fmt.Sprintf("chat_room_%v", storage.GetRoom(conn.ID())))
 		conn.Emit("clear", "clear")
