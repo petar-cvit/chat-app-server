@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/gin-gonic/gin"
 	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
@@ -39,7 +38,10 @@ func main() {
 		conn.Emit("clear", "clear")
 
 		conn.Join(room)
-		storage.SetRoom(conn.ID(), room)
+
+		if storage.SetRoom(conn.ID(), room) {
+			conn.Emit("new_room", roomID)
+		}
 
 		msgs := storage.GetMessagesByRoom(room)
 		for _, msg := range msgs {
@@ -81,7 +83,15 @@ func main() {
 
 	router.GET("/socket.io/*any", gin.WrapH(server))
 	router.POST("/socket.io/*any", gin.WrapH(server))
-	router.StaticFile("/", "./static/index.html")
+
+	router.LoadHTMLGlob("./templates/*")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index_chat.html", gin.H{
+			"title": "Chat app",
+		})
+	})
+
+	router.Static("./css", "./css")
 
 	router.Run()
 }
