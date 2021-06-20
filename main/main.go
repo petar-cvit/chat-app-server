@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
+	"strings"
 
 	"github.com/petar-cvit/chat-app-server/internal/infrastructure/storage"
 )
@@ -33,6 +34,8 @@ func main() {
 
 	server.OnEvent("/", "joinRoom", func(conn socketio.Conn, roomID string) error {
 		room := fmt.Sprintf("chat_room_%v", roomID)
+		roomName := roomName(roomID)
+		strings.Join([]string{"chat_room_%v", roomID}, "_")
 
 		conn.Leave(fmt.Sprintf("chat_room_%v", storage.GetRoom(conn.ID())))
 		conn.Emit("clear", "clear")
@@ -40,7 +43,7 @@ func main() {
 		conn.Join(room)
 
 		if storage.SetRoom(conn.ID(), room) {
-			conn.Emit("new_room", roomID)
+			conn.Emit("new_room", roomName)
 		}
 
 		msgs := storage.GetMessagesByRoom(room)
@@ -94,4 +97,12 @@ func main() {
 	router.Static("./css", "./css")
 
 	router.Run()
+}
+
+func roomName(name string) string {
+	if len(name) == 0 {
+		return "lobby"
+	}
+
+	return name
 }
