@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/gin-gonic/gin"
 	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
+	"strings"
 
 	"github.com/petar-cvit/chat-app-server/internal/infrastructure/storage"
 )
@@ -17,12 +17,13 @@ func main() {
 	server, _ := socketio.NewServer(nil)
 
 	server.OnConnect("/", func(s socketio.Conn) error {
-		room := fmt.Sprintf("chat_room_%v", storage.GetRoom(s.ID()))
+		room := storage.GetRoom(s.ID())
 
 		storage.SetRoom(s.ID(), room)
 
 		s.SetContext("")
 		s.Join(room)
+		s.Emit("new_room", "lobby")
 
 		msgs := storage.GetMessagesByRoom(room)
 		for _, msg := range msgs {
@@ -33,13 +34,19 @@ func main() {
 	})
 
 	server.OnEvent("/", "joinRoom", func(conn socketio.Conn, roomID string) error {
-		room := fmt.Sprintf("chat_room_%v", roomID)
+		roomName := roomName(roomID)
+		room := strings.Join([]string{"chat_room", roomName}, "_")
+
+		fmt.Println(room)
 
 		conn.Leave(fmt.Sprintf("chat_room_%v", storage.GetRoom(conn.ID())))
 		conn.Emit("clear", "clear")
 
 		conn.Join(room)
-		storage.SetRoom(conn.ID(), room)
+
+		if storage.SetRoom(conn.ID(), room) {
+			conn.Emit("new_room", roomName)
+		}
 
 		msgs := storage.GetMessagesByRoom(room)
 		for _, msg := range msgs {
@@ -81,7 +88,23 @@ func main() {
 
 	router.GET("/socket.io/*any", gin.WrapH(server))
 	router.POST("/socket.io/*any", gin.WrapH(server))
-	router.StaticFile("/", "./static/index.html")
+
+	router.LoadHTMLGlob("./templates/*")
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index_chat.html", gin.H{
+			"title": "Chat app",
+		})
+	})
+
+	router.Static("./css", "./css")
 
 	router.Run()
+}
+
+func roomName(name string) string {
+	if len(name) == 0 {
+		return "lobby"
+	}
+
+	return name
 }

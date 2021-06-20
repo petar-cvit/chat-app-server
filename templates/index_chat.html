@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+    <title>Socket.IO chat</title>
+    <link rel="stylesheet" href="../css/choose_rooms.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+<div class="split left">
+    <form class="room-search" id="roomIDForm" action="">
+        <input id="roomID" type="text" placeholder="Search rooms to join..." name="search">
+        <button type="submit"><i class="fa fa-search"></i></button>
+    </form>
+    <ul id="room-pickers" class="btn-group">
+    </ul>
+</div>
+<div class="split right">
+    <ul id="messages"></ul>
+    <form id="msgs" action="">
+        <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+        var socket = io();
+
+        var s2 = io("/chat");
+
+        socket.on('reply', function(msg){
+            $('#messages').append($('<li>').text(msg));
+        });
+        socket.on('clear', function(msg){
+            $('#messages').empty();
+            return false;
+        });
+        socket.on('new_room', function(roomID) {
+            var roomPicker = document.createElement("button");
+            roomPicker.type = "button";
+            roomPicker.value = roomID;
+            roomPicker.name = "room-picker-" + roomID.toString();
+            roomPicker.onclick = function () {
+                socket.emit('joinRoom', roomPicker.value);
+            }
+            roomPicker.textContent = "room " + roomID.toString();
+            roomPicker.className = "button";
+
+            $('#room-pickers').append(roomPicker);
+        })
+
+        $('#msgs').submit(function(){
+            s2.emit('msg', $('#m').val());
+            socket.emit('notice', $('#m').val());
+            $('#m').val('');
+            return false;
+        });
+        $('#roomIDForm').submit(function(){
+            socket.emit('joinRoom', $('#roomID').val());
+            return false;
+        })
+    </script>
+</div>
+</body>
+</html>
