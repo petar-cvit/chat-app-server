@@ -1,16 +1,19 @@
 package storage
 
 import (
+	"github.com/petar-cvit/chat-app-server/internal/models"
 	"sync"
 )
 
 type Storage struct {
-	storage sync.Map
+	messages sync.Map
+	rooms    sync.Map
 }
 
 func New() *Storage {
 	return &Storage{
-		storage: sync.Map{},
+		messages: sync.Map{},
+		rooms:    sync.Map{},
 	}
 }
 
@@ -18,11 +21,11 @@ func (s *Storage) SaveMessage(ID string, message string) {
 	messages := s.GetMessagesByRoom(ID)
 	messages = append(messages, message)
 
-	s.storage.Store(ID, messages)
+	s.messages.Store(ID, messages)
 }
 
 func (s *Storage) GetMessagesByRoom(ID string) []string {
-	messages, ok := s.storage.Load(ID)
+	messages, ok := s.messages.Load(ID)
 	if !ok {
 		return []string{}
 	}
@@ -35,12 +38,32 @@ func (s *Storage) GetMessagesByRoom(ID string) []string {
 	return mess
 }
 
-func (s *Storage) SetRoom(userID, roomID string) {
-	s.storage.Store(userID, roomID)
+func (s *Storage) SetRoom(userID, roomID string) bool {
+	s.messages.Store(userID, roomID)
+
+	data, exists := s.rooms.Load(userID)
+
+	if !exists {
+		s.rooms.Store(userID, models.Rooms{map[string]bool{
+			roomID: true,
+		}})
+
+		return true
+	}
+
+	roomsByUser := data.(models.Rooms)
+
+	if _, visitedThisRoom := roomsByUser.Rooms[roomID]; visitedThisRoom {
+		return false
+	}
+
+	roomsByUser.Rooms[roomID] = true
+	s.rooms.Store(userID, roomsByUser)
+	return true
 }
 
 func (s *Storage) GetRoom(userID string) string {
-	val, exists := s.storage.Load(userID)
+	val, exists := s.messages.Load(userID)
 	if !exists {
 		return "chat_room"
 	}
