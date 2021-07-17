@@ -1,8 +1,10 @@
 package storage
 
 import (
-	"github.com/petar-cvit/chat-app-server/internal/models"
+	"errors"
 	"sync"
+
+	"github.com/petar-cvit/chat-app-server/internal/models"
 )
 
 type Storage struct {
@@ -17,25 +19,30 @@ func New() *Storage {
 	}
 }
 
-func (s *Storage) SaveMessage(ID string, message string) {
-	messages := s.GetMessagesByRoom(ID)
-	messages = append(messages, message)
+func (s *Storage) SaveMessage(ID string, message *models.Message) error {
+	messages, err := s.GetMessagesByRoom(ID)
+	if err != nil {
+		return err
+	}
 
+	messages.AppendMessage(message)
 	s.messages.Store(ID, messages)
+
+	return nil
 }
 
-func (s *Storage) GetMessagesByRoom(ID string) []string {
+func (s *Storage) GetMessagesByRoom(ID string) (*models.Messages, error) {
 	messages, ok := s.messages.Load(ID)
 	if !ok {
-		return []string{}
+		messages = &models.Messages{Messages: []*models.Message{}}
 	}
 
-	mess, ok := messages.([]string)
+	mess, ok := messages.(*models.Messages)
 	if !ok {
-		return []string{}
+		return nil, errors.New("casting messages error")
 	}
 
-	return mess
+	return mess, nil
 }
 
 func (s *Storage) SetRoom(userID, roomID string) bool {
@@ -60,6 +67,17 @@ func (s *Storage) SetRoom(userID, roomID string) bool {
 	roomsByUser.Rooms[roomID] = true
 	s.rooms.Store(userID, roomsByUser)
 	return true
+}
+
+func (s *Storage) GetRoomsByUser(userID string) models.Rooms {
+	data, ok := s.rooms.Load(userID)
+	if !ok {
+		return models.Rooms{}
+	}
+
+	roomsByUser := data.(models.Rooms)
+
+	return roomsByUser
 }
 
 func (s *Storage) GetRoom(userID string) string {
