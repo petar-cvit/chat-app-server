@@ -22,12 +22,27 @@
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
-        var socket = io();
-
+        var socket = io.connect();
+        var id = Math.floor(Math.random() * 100).toString()
         var s2 = io("/chat");
 
-        socket.on('reply', function(msg){
-            $('#messages').append($('<li>').text(msg));
+        socket.on('reply', function(messageText){
+            console.log(messageText);
+            msg = JSON.parse(messageText)
+
+            console.log(id + " " + msg.issuer)
+
+            if (id === msg.issuer) {
+                $('#messages').append("<li class=\"container\">" +
+                    "<p style='float: right;'>" + msg.text + "</p>\n" +
+                    "<span class='time-left'>" + msg.time + "</span>" +
+                    "</li>");
+            } else {
+                $('#messages').append("<li class=\"container darker\">" +
+                    "<p style='float: left;'>" + msg.text + "</p>\n" +
+                    "<span class='time-right'>" + msg.time + "</span>" +
+                    "</li>");
+            }
         });
         socket.on('clear', function(msg){
             $('#messages').empty();
@@ -47,9 +62,9 @@
             $('#room-pickers').append(roomPicker);
         })
 
-        $('#msgs').submit(function(){
+        $('#msgs').submit(function() {
             s2.emit('msg', $('#m').val());
-            socket.emit('notice', $('#m').val());
+            socket.emit('notice', $('#m').val()  + ";" + id);
             $('#m').val('');
             return false;
         });

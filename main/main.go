@@ -1,13 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	socketio "github.com/googollee/go-socket.io"
 	_ "github.com/joho/godotenv/autoload"
-	"strings"
 
 	"github.com/petar-cvit/chat-app-server/internal/infrastructure/storage"
+	"github.com/petar-cvit/chat-app-server/internal/models"
 )
 
 func main() {
@@ -25,8 +29,12 @@ func main() {
 		s.Join(room)
 		s.Emit("new_room", "lobby")
 
-		msgs := storage.GetMessagesByRoom(room)
-		for _, msg := range msgs {
+		msgs, err := storage.GetMessagesByRoom(room)
+		if err != nil {
+			return err
+		}
+
+		for _, msg := range msgs.Messages {
 			s.Emit("reply", msg)
 		}
 
@@ -37,8 +45,6 @@ func main() {
 		roomName := roomName(roomID)
 		room := strings.Join([]string{"chat_room", roomName}, "_")
 
-		fmt.Println(room)
-
 		conn.Leave(fmt.Sprintf("chat_room_%v", storage.GetRoom(conn.ID())))
 		conn.Emit("clear", "clear")
 
@@ -48,18 +54,40 @@ func main() {
 			conn.Emit("new_room", roomName)
 		}
 
-		msgs := storage.GetMessagesByRoom(room)
-		for _, msg := range msgs {
-			conn.Emit("reply", msg)
+		msgs, err := storage.GetMessagesByRoom(room)
+		if err != nil {
+			return err
+		}
+
+		for _, msg := range msgs.Messages {
+			marshalledMessage, err := json.Marshal(msg)
+			if err != nil {
+				return err
+			}
+
+			conn.Emit("reply", string(marshalledMessage))
 		}
 
 		return nil
 	})
 
-	server.OnEvent("/", "notice", func(s socketio.Conn, msg string) {
-		storage.SaveMessage(storage.GetRoom(s.ID()), msg)
+	server.OnEvent("/", "notice", func(s socketio.Conn, text string) {
+		parts := strings.Split(text, ";")
 
-		server.BroadcastToRoom("/", storage.GetRoom(s.ID()), "reply", msg)
+		message := &models.Message{
+			Text:   parts[0],
+			Time:   time.Now().Format(time.Stamp),
+			Issuer: parts[1],
+		}
+
+		storage.SaveMessage(storage.GetRoom(s.ID()), message)
+
+		marshalledMessage, err := json.Marshal(message)
+		if err != nil {
+			return
+		}
+
+		server.BroadcastToRoom("/", storage.GetRoom(s.ID()), "reply", string(marshalledMessage))
 	})
 
 	server.OnEvent("/chat", "msg", func(s socketio.Conn, msg string) string {
